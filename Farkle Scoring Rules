@@ -1,0 +1,17 @@
+Farkle Scoring Rules
+The script uses the following standard Farkle scoring rules:
+
+Single 1: 100 points
+Single 5: 50 points
+Three 1s: 1000 points
+Three 2s: 200 points
+Three 3s: 300 points
+Three 4s: 400 points
+Three 5s: 500 points
+Three 6s: 600 points
+Four of a Kind: Double the value of three of a kind (e.g., four 2s = 400 points)
+Five of a Kind: Double the value of four of a kind (e.g., five 2s = 800 points)
+Six of a Kind: Double the value of five of a kind (e.g., six 2s = 1600 points)
+1-2-3-4-5 (Lower Short Straight): 500 Points
+2-3-4-5-6 (Upper Short Straight): 750 Points
+1-2-3-4-5-6 (Long Straight): 1500 Points
