@@ -1,4 +1,4 @@
-# Farkle Dice Optimizer
+# KCD2 Dice Optimizer (Farkle)
 
 This Python script helps you optimize your dice selection in the game of Farkle in KCD2. It calculates the expected value (EV) of different dice combinations and recommends the optimal 6-die combination based on your available dice. It also identifies the most likely roll and the highest-scoring possible roll for a given combination.
 
