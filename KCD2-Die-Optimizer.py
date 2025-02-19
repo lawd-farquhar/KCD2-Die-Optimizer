@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import collections
 
-# --- Farkle Scoring and Probability Logic ---
+# --- Farkle Scoring and Probability Logic --- (No changes here)
 def calculate_score(dice):
     score = 0
     counts = [dice.count(i) for i in range(1, 7)]
@@ -12,6 +12,8 @@ def calculate_score(dice):
         return 500
     if sorted(dice) == [2, 3, 4, 5, 6]:
         return 750
+    if sorted(dice) == [1, 2, 3, 4, 5, 6]:
+        return 1500
 
     for num, count in enumerate(counts, start=1):
         if count >= 3:
@@ -64,7 +66,6 @@ DICE_PROBABILITIES = {
 }
 
 def calculate_ev_and_modal_roll(dice_combo):
-    """EV, most likely roll, and highest scoring roll."""
     total_ev = 0
     roll_probabilities = {}
     all_possible_rolls = itertools.product(*[range(1, 7) for _ in dice_combo])
@@ -81,6 +82,7 @@ def calculate_ev_and_modal_roll(dice_combo):
             roll_probabilities[sorted_roll] += probability
         else:
             roll_probabilities[sorted_roll] = probability
+
     max_probability = 0
     most_likely_rolls = []
 
@@ -90,28 +92,39 @@ def calculate_ev_and_modal_roll(dice_combo):
             most_likely_rolls = [roll]
         elif prob == max_probability:
             most_likely_rolls.append(roll)
+
     max_score = -1
     highest_scoring_roll = None
-    # Corrected Highest Scoring Roll Logic
-    for roll in itertools.product(*[range(1, 7) for _ in dice_combo]):  # Iterate through ALL possible rolls
+    highest_scoring_roll_probability = 0
+
+    for roll in itertools.product(*[range(1, 7) for _ in dice_combo]):
         valid_roll = True
+        roll_prob = 1.0
         for i, die in enumerate(dice_combo):
             die_probs = DICE_PROBABILITIES[die]
-            if die_probs[roll[i]-1] == 0:  # Check if this outcome is possible for this die
+            if die_probs[roll[i] - 1] == 0:
                 valid_roll = False
-                break  # No need to check other dice in this roll
+                break
+            roll_prob *= die_probs[roll[i] - 1]
+
         if valid_roll:
             score = calculate_score(roll)
             if score > max_score:
                 max_score = score
                 highest_scoring_roll = tuple(roll)
+                highest_scoring_roll_probability = roll_prob
 
-    return total_ev, most_likely_rolls, max_probability, highest_scoring_roll, max_score
+    prob_at_least_one_scoring_die = 1.0
+    for die in dice_combo:
+        prob_no_1_or_5 = 1.0 - (DICE_PROBABILITIES[die][0] + DICE_PROBABILITIES[die][4])
+        prob_at_least_one_scoring_die *= prob_no_1_or_5
+    prob_at_least_one_scoring_die = 1.0 - prob_at_least_one_scoring_die
+
+    return (total_ev, most_likely_rolls, max_probability,
+            highest_scoring_roll, max_score, highest_scoring_roll_probability,
+            prob_at_least_one_scoring_die)
 
 def recommend_optimal_dice(user_dice_counts):
-    """
-    Recommends optimal dice, accounting for counts.  Fills with Standard Dice.
-    """
     user_dice = []
     for die_type, count in user_dice_counts.items():
         user_dice.extend([die_type] * count)
@@ -125,9 +138,12 @@ def recommend_optimal_dice(user_dice_counts):
     best_modal_probability = 0
     best_high_roll = None
     best_high_score = -1
+    best_high_roll_prob = 0
+    best_scoring_die_prob = 0
 
     for combo in itertools.combinations(full_dice_set, 6):
-        ev, modal_rolls, modal_probability, high_roll, high_score = calculate_ev_and_modal_roll(combo)
+        (ev, modal_rolls, modal_probability, high_roll, high_score,
+         high_roll_prob, scoring_die_prob) = calculate_ev_and_modal_roll(combo)
         if ev > max_ev:
             max_ev = ev
             optimal_combo = combo
@@ -135,8 +151,11 @@ def recommend_optimal_dice(user_dice_counts):
             best_modal_probability = modal_probability
             best_high_roll = high_roll
             best_high_score = high_score
+            best_high_roll_prob = high_roll_prob
+            best_scoring_die_prob = scoring_die_prob
 
-    return optimal_combo, max_ev, best_modal_rolls, best_modal_probability, best_high_roll, best_high_score
+    return (optimal_combo, max_ev, best_modal_rolls, best_modal_probability,
+            best_high_roll, best_high_score, best_high_roll_prob, best_scoring_die_prob)
 
 # --- GUI Setup ---
 
@@ -168,28 +187,74 @@ def recommend_combination_wrapper(checkbox_vars):
             user_dice_counts[die_name] = data["quantity"]
 
     try:
-        optimal_combo, max_ev, modal_rolls, modal_probability, high_roll, high_score = recommend_optimal_dice(user_dice_counts)
+        (optimal_combo, max_ev, modal_rolls, modal_probability, high_roll,
+         high_score, high_roll_prob, scoring_die_prob) = recommend_optimal_dice(user_dice_counts)
 
         if optimal_combo:
             modal_rolls_str = ", ".join(str(roll) for roll in modal_rolls)
-            messagebox.showinfo("Optimal Combination",
-                                f"Optimal Die Combination: {', '.join(optimal_combo)}\n"
-                                f"Expected Value (EV): {max_ev:.2f}\n"
-                                f"Most Likely Roll(s): {modal_rolls_str}\n"
-                                f"Probability of Most Likely Roll: {modal_probability:.4f}\n"
-                                f"Highest Scoring Roll: {high_roll}\n"
-                                f"Score: {high_score}"
-                                )
+
+            # --- Comparison to Average EV ---
+            has_duplicates = False
+            for die, count in collections.Counter(optimal_combo).items():
+                if die != "Standard Die" and count > 1:
+                    has_duplicates = True
+                    break
+
+            avg_ev_with_duplicates = 584.39
+            avg_ev_no_duplicates = 576.86
+
+            if has_duplicates:
+                comparison_ev = avg_ev_with_duplicates
+            else:
+                comparison_ev = avg_ev_no_duplicates
+
+            ev_difference = max_ev - comparison_ev
+            ev_diff_str = f"{'+' if ev_difference >= 0 else ''}{ev_difference:.2f}"
+
+            # --- Update Result Label ---
+            result_text = (
+                f"Optimal: {', '.join(optimal_combo)}\n"
+                f"EV: {max_ev:.2f}\n"
+                f"Most Likely: {modal_rolls_str}\n"
+                f"Probability: {modal_probability*100:.2f}%\n"
+                f"Highest Roll: {high_roll}\n"
+                f"Score: {high_score}\n"
+                f"Probability: {high_roll_prob*100:.6f}%\n"
+                f"P(1 or 5): {scoring_die_prob*100:.2f}%\n"
+                f"EV vs. Avg: {ev_diff_str}"
+            )
+            result_label.config(text=result_text)
+
+            # --- Set Color of EV Difference (using styles) ---
+            if ev_difference > 0:
+                style.configure("Positive.TLabel", foreground="green")
+                ev_diff_label.config(text=ev_diff_str, style="Positive.TLabel")
+            elif ev_difference < 0:
+                style.configure("Negative.TLabel", foreground="red")
+                ev_diff_label.config(text=ev_diff_str, style="Negative.TLabel")
+            else:
+                style.configure("Neutral.TLabel", foreground="black")
+                ev_diff_label.config(text=ev_diff_str, style="Neutral.TLabel")
+
         else:
-            messagebox.showinfo("No Combination Found", "No optimal 6-die combination could be formed.")
+            result_label.config(text="No optimal 6-die combination could be formed.")
+            ev_diff_label.config(text="")
 
     except ValueError as e:
         messagebox.showerror("Selection Error", str(e))
+        result_label.config(text=f"Error: {e}")
+        ev_diff_label.config(text="")
     except Exception as e:
         messagebox.showerror("Unexpected Error", str(e))
+        result_label.config(text=f"Error: {e}")
+        ev_diff_label.config(text="")
 
 root = tk.Tk()
 root.title("Farkle Dice Optimizer")
+
+# --- Style Setup (before creating widgets) ---
+style = ttk.Style()
+style.configure("Neutral.TLabel", foreground="black")  # Default style
 
 checkbox_vars = {}
 dice_names = sorted(DICE_PROBABILITIES.keys())
@@ -202,7 +267,7 @@ yscrollbar = ttk.Scrollbar(checkbox_frame, orient=tk.VERTICAL)
 yscrollbar.grid(row=0, column=2, sticky='ns')
 
 canvas = tk.Canvas(checkbox_frame, yscrollcommand=yscrollbar.set)
-canvas.grid(row=0, column=0, columnspan = 2, sticky="nsew")
+canvas.grid(row=0, column=0, columnspan=2, sticky="nsew")
 yscrollbar.config(command=canvas.yview)
 
 inner_frame = tk.Frame(canvas)
@@ -229,10 +294,18 @@ recommend_button = ttk.Button(root, text="Recommend Optimal Combination",
                            command=lambda: recommend_combination_wrapper(checkbox_vars))
 recommend_button.grid(row=1, column=0, pady=10)
 
+# Result Label (for all results)
+result_label = ttk.Label(root, text="", justify="left", font=("Courier", 10))
+result_label.grid(row=2, column=0, sticky="w", padx=10)
+
+# EV Difference Label (for colored output)
+ev_diff_label = ttk.Label(root, text="", font=("Arial", 12, "bold"))
+ev_diff_label.grid(row=3, column=0, sticky="w", padx=10)
+
 root.columnconfigure(0, weight=1)
 root.rowconfigure(0, weight=1)
 checkbox_frame.columnconfigure(0, weight=1)
 checkbox_frame.rowconfigure(0, weight=1)
-canvas.columnconfigure(0, weight = 1)
+canvas.columnconfigure(0, weight=1)
 
 root.mainloop()
