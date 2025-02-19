@@ -4,14 +4,22 @@ This Python script helps you optimize your dice selection in the game of Farkle 
 
 ## Features
 
-*   **Comprehensive Dice Database:** Includes a wide variety of dice with different probability distributions, based on u/Nigi_1's reddit post https://www.reddit.com/r/kingdomcome/comments/1ijaac0/kcd2_dice_weight_table/.  Also includes a "Standard Die" for fair comparisons.
-*   **Expected Value (EV) Calculation:**  Accurately calculates the expected value of any 6-die combination.
-*   **Optimal Combination Recommendation:**  Determines the optimal 6-die combination from a user-specified set of dice (or fills in with standard dice if fewer than 6 are selected).
-*   **Most Likely Roll Analysis:** Identifies the most likely roll(s) for a given die combination and their probability.
-*   **Highest Scoring Roll Identification:** Finds the highest-scoring roll that is *possible* with the selected dice (even if that roll has a very low probability).
-*   **Multiple Dice of Same Type:** Allows the user to specify how many of each type of die they have.
-*   **Scrollable GUI:**  User-friendly graphical interface (GUI) built with Tkinter, featuring a scrollable list of checkboxes for die selection.
-*   **Error Handling:** Includes error handling for invalid user input.
+*   **Dice Selection:**  Choose from a comprehensive list of Farkle dice with varying probabilities gathered from u/Nigi_1 on Reddit via https://www.reddit.com/r/kingdomcome/comments/1ijaac0/kcd2_dice_weight_table/.  You can specify the *quantity* of each die type you have.
+*   **Optimal Combination Recommendation:** The program calculates the optimal 6-dice combination from your selected dice, maximizing the expected value (EV).
+*   **Detailed Statistics:**  For the recommended combination, the program displays:
+    *   Expected Value (EV)
+    *   Most Likely Roll(s) and their probability
+    *   Highest Scoring Roll and its probability
+    *   Probability of rolling at least one 1 or 5 (scoring probability)
+    *   Comparison of the selected combination's EV to the average EV of all dice combinations (with and without duplicates, as appropriate), displayed in green (above average), red (below average), or black (average).
+*   **User-Friendly GUI:**  A graphical interface (built with Tkinter) makes it easy to select dice and view results.
+*   **Handles Duplicates:**  The program correctly handles duplicate dice selections. The "Standard Die" is allowed to have duplicates; any other dice will prompt user for the quantity.
+*	 **Average EV benchmarks for the comparison:**
+     *   Average EV with Duplicates is set at 584.39
+	 *   Average EV without duplicates (except standard): 576.86
+*   **Error Handling:**  The program handles potential errors gracefully, displaying informative messages within the GUI.
+
+
 
 ## Installation
 
@@ -28,19 +36,14 @@ This Python script helps you optimize your dice selection in the game of Farkle 
 
 ## Usage
 
-1.  **Run the Script:**
-    ```bash
-    python KCD2-Die-Optimizer.py
-    ```
-2.  **Select Your Dice:**  The GUI will appear, showing a list of dice.  Check the boxes next to the dice you have.
-3.  **Enter Quantities:**  If you select a die, a dialog box will pop up, asking you how many of that die you have.  Enter the quantity (0-10) and press Enter.  If you enter 0, the checkbox will automatically uncheck.
-4.  **Click "Recommend Optimal Combination":**  After selecting your dice, click this button. The program will calculate the best 6-die combination from your selection (adding "Standard Dice" if you selected fewer than 6). The results will be displayed in a message box, including:
-    *   The optimal die combination.
-    *   The expected value (EV) of that combination.
-    *   The most likely roll(s) for that combination.
-    *   The probability of the most likely roll(s).
-    *   The highest possible score for that combination.
-    *   Roll associated with highest possible score.
+1.  **Run the Script:** Execute the Python script (`KCD2-Die-Optimizer.py`).
+2.  **Select Dice:** Check the boxes next to the dice types you have available.
+3.  **Enter Quantities:** When you select a die (other than "Standard Die"), a dialog box will appear, prompting you to enter the quantity of that die you possess.  Enter the number and click "OK".  If you make a mistake, uncheck and re-check the die to re-enter the quantity.
+4.  **Recommend Combination:** Click the "Recommend Optimal Combination" button.
+5.  **View Results:** The program will display the optimal 6-dice combination, along with the detailed statistics mentioned above, in the GUI. The EV comparison to the average will be color-coded:
+    *   **Green:** Your combination's EV is above average.
+    *   **Red:** Your combination's EV is below average.
+    *   **Black:** Your combination's EV is exactly average.
 
 ## Dice Probabilities
 
